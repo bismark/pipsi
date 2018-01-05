@@ -5,6 +5,7 @@ import sys
 import shutil
 import subprocess
 import glob
+import re
 from collections import namedtuple
 from os.path import join, realpath, dirname, normpath, normcase
 from operator import methodcaller
@@ -49,6 +50,8 @@ GET_VERSION_SCRIPT = pkgutil.get_data('pipsi', 'scripts/get_version.py').decode(
 CONTEXT_SETTINGS = dict(
     help_option_names=['-h', '--help'],
 )
+
+EGG_REGEX = re.compile(r'egg=([^&]*)')
 
 
 def proc_output(s):
@@ -165,11 +168,12 @@ class Repo(object):
         if url.netloc == 'file':
             location = url.path
         elif url.netloc != '':
-            if not url.fragment.startswith('egg='):
+            match = EGG_REGEX.search(url.fragment)
+            if not match:
                 raise click.UsageError('When installing from URLs you need '
                                        'to add an egg at the end.  For '
                                        'instance git+https://.../#egg=Foo')
-            return url.fragment[4:], [spec]
+            return match.group(1), [spec]
         elif os.path.isdir(spec):
             location = spec
         else:
